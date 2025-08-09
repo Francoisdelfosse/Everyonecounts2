@@ -2,53 +2,98 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Population & Budget</title>
+<title>World Population and Spending</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.1.0/dist/chartjs-plugin-dragdata.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
     body {
         font-family: 'Bebas Neue', sans-serif;
+        background: #111;
+        color: white;
         text-align: center;
-        background-color: #f9f9f9;
         margin: 0;
         padding: 0;
     }
-    .population {
-        font-size: 10vw;
-        margin: 10px 0;
+    #population {
+        font-size: 6vw;
+        margin: 20px 0;
     }
     canvas {
         max-width: 90vw;
-        max-height: 60vh;
+        max-height: 70vh;
         margin: auto;
-    }
-    .caption {
-        font-size: 4vw;
-        margin-top: 5px;
     }
 </style>
 </head>
 <body>
 
-<div class="population" id="population">Loading...</div>
-<canvas id="budgetChart"></canvas>
-<div class="caption" id="caption">Click a slice to see details</div>
+<div id="population"></div>
+<canvas id="spendingChart"></canvas>
 
 <script>
-    // Estimated population from UN data
-    const basePopulation = 8045311447; // UN July 2024 estimate
-    const annualGrowthRate = 0.0083; // ~0.83% annual growth
-    const growthPerSecond = basePopulation * annualGrowthRate / (365 * 24 * 60 * 60);
+// WORLD POPULATION COUNTER
+function getEstimatedWorldPopulation() {
+    // Rough starting point: Feb 2025 est. ~8,093,000,000
+    const basePopulation = 8093000000;
+    const growthPerSecond = 2.4; // approx UN estimate
+    const startTime = new Date("2025-02-01T00:00:00Z").getTime();
+    const now = Date.now();
+    const elapsedSeconds = (now - startTime) / 1000;
+    return Math.floor(basePopulation + (elapsedSeconds * growthPerSecond));
+}
 
-    function getCurrentPopulation() {
-        const now = new Date();
-        const startOf2024 = new Date('2024-07-01T00:00:00Z');
-        const elapsedSeconds = (now - startOf2024) / 1000;
-        return Math.floor(basePopulation + elapsedSeconds * growthPerSecond);
-    }
+function updatePopulation() {
+    document.getElementById('population').innerText = getEstimatedWorldPopulation();
+}
+setInterval(updatePopulation, 1000);
+updatePopulation();
 
-    function updatePopulation() {
-        document.getElementById("population").textContent = getCurrentPopulation();
-    }
-    setInterval(updatePopulation, 1000);
+// PIE CHART
+const ctx = document.getElementById('spendingChart').getContext('2d');
+
+const labels = [
+    "Social Protection", "Health", "General Public Services",
+    "Economic Affairs", "Education", "Debt Servicing",
+    "Public Order and Safety", "Housing & Community Amenities",
+    "Recreation, Culture & Religion", "Environmental Protection", "Other"
+];
+
+const dataValues = [22.0, 8.0, 6.2, 6.1, 5.0, 4.5, 3.5, 3.0, 2.5, 2.0, 37.2]; // last slice = remaining %
+
+const colors = [
+    "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4",
+    "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080"
+];
+
+const spendingChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+        labels: labels,
+        datasets: [{
+            data: dataValues,
+            backgroundColor: colors
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom', labels: { color: 'white', font: { size: 16 } } },
+            tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed.toFixed(1) + '%' } },
+            dragData: true,
+            dragDataRound: 1,
+            onDragStart: function(e, datasetIndex, index, value) {},
+            onDrag: function(e, datasetIndex, index, value) {},
+            onDragEnd: function(e, datasetIndex, index, value) {
+                let total = spendingChart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                spendingChart.data.datasets[0].data = spendingChart.data.datasets[0].data.map(v => (v / total) * 100);
+                spendingChart.update();
+            }
+        }
+    },
+    plugins: [ChartDataDrag]
+});
+</script>
+
+</body>
+</html>
