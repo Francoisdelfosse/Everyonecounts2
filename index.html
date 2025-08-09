@@ -51,7 +51,6 @@
       -webkit-appearance: none;
       background: transparent;
     }
-    /* Slider track and thumb for consistency */
     input[type=range]::-webkit-slider-runnable-track {
       height: 6px;
       background: #444;
@@ -68,7 +67,6 @@
       position: relative;
       z-index: 1;
     }
-    /* Tooltip */
     .tooltip {
       position: absolute;
       bottom: 30px;
@@ -121,18 +119,20 @@
   </div>
 
 <script>
-  // Anchor data: Jan 1, 2025 population estimate & base growth rate
-  const basePopulation = 8079200000;
-  const baseDate = new Date("2025-01-01T00:00:00Z").getTime();
-  const baseGrowthRate = 0.008; // ~0.8% per year (approximate)
+  // Anchor data: Jan 1, 2025 population & base growth rate (per year)
+  const anchorDate = new Date("2025-01-01T00:00:00Z").getTime();
+  const anchorPopulation = 8079200000; // estimated population at anchorDate
+  const baseGrowthRate = 0.008; // ~0.8% per year
 
-  // Slider influence configuration (weight & lag in years)
+  // Slider configs: weight & lag years
   const sliderConfigs = {
     health: { weight: 0.002, lagYears: 15 },
     education: { weight: 0.002, lagYears: 15 },
     climate: { weight: 0.001, lagYears: 15 },
     war: { weight: -0.003, lagYears: 5 }
   };
+
+  const secondsPerYear = 365.25 * 24 * 3600;
 
   const sliders = {
     health: 50,
@@ -151,25 +151,25 @@
     return a + (b - a) * t;
   }
 
-  // Update target slider values on input
+  // Update target slider value and UI
   function updateTarget(id, val) {
     sliders[id] = val;
     document.getElementById(id + "Val").textContent = val;
   }
 
-  // Gradually update effective slider values toward targets based on lag
+  // Update effective slider values with smoothing based on lag
   function updateEffectiveSliders(deltaTime) {
     for (const id in sliders) {
       const cfg = sliderConfigs[id];
       const target = sliders[id];
       const current = effectiveSliders[id];
-      const lagSeconds = cfg.lagYears * 365.25 * 24 * 3600;
+      const lagSeconds = cfg.lagYears * secondsPerYear;
       const smoothing = 1 - Math.exp(-deltaTime / lagSeconds);
       effectiveSliders[id] = lerp(current, target, smoothing);
     }
   }
 
-  // Calculate current growth rate based on effective sliders
+  // Compute current growth rate
   function calcGrowthRate() {
     let rate = baseGrowthRate;
     for (const id in effectiveSliders) {
@@ -179,8 +179,16 @@
     return rate;
   }
 
+  // Calculate initial population based on current date
+  function initialPopulation() {
+    const now = Date.now();
+    const elapsedYears = (now - anchorDate) / (secondsPerYear * 1000);
+    return anchorPopulation * Math.exp(baseGrowthRate * elapsedYears);
+  }
+
+  // Variables for animation
   let lastTimestamp = null;
-  let currentPopulation = basePopulation;
+  let currentPopulation = initialPopulation();
 
   function update(timestamp) {
     if (!lastTimestamp) lastTimestamp = timestamp;
@@ -191,14 +199,15 @@
     updateEffectiveSliders(deltaSec);
     const growthRate = calcGrowthRate();
 
-    currentPopulation *= Math.exp(growthRate * (deltaSec / (365.25 * 24 * 3600)));
+    // Apply exponential growth over deltaSec
+    currentPopulation *= Math.exp(growthRate * (deltaSec / secondsPerYear));
 
     document.getElementById("population").textContent = Math.floor(currentPopulation);
 
     requestAnimationFrame(update);
   }
 
-  // Tooltip handling with improved positioning
+  // Tooltip positioning & slider event handlers
   const sliderContainers = document.querySelectorAll(".slider-container");
   sliderContainers.forEach(container => {
     const slider = container.querySelector("input[type=range]");
@@ -212,16 +221,14 @@
 
       const rect = slider.getBoundingClientRect();
       const sliderWidth = rect.width;
-      const thumbWidth = 18; // same as CSS thumb width
-      const tooltipWidth = tooltip.offsetWidth || 100; // fallback width
+      const thumbWidth = 18; // CSS thumb width
+      const tooltipWidth = tooltip.offsetWidth || 100;
 
       const percent = (e.target.value - slider.min) / (slider.max - slider.min);
       let left = percent * sliderWidth;
 
-      // Center tooltip above thumb
       left = left - tooltipWidth / 2 + thumbWidth / 2;
 
-      // Clamp to slider container bounds
       if (left < 0) left = 0;
       if (left + tooltipWidth > sliderWidth) left = sliderWidth - tooltipWidth;
 
