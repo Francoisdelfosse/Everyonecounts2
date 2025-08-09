@@ -1,89 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Real-Time World Population Counter</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
-<style>
+  <meta charset="UTF-8">
+  <title>World Population Simulation</title>
+  <style>
     body {
-        background-color: black;
-        color: white;
-        font-family: 'Bebas Neue', sans-serif;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+      background-color: black;
+      color: white;
+      font-family: 'Bebas Neue', sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
     }
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
     #population {
-        font-size: 120px;
-        font-weight: bold;
-        letter-spacing: 4px;
+      font-size: 8vw;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    .label {
+      font-size: 2vw;
+      margin: 10px 0;
     }
     .slider-container {
-        margin-top: 50px;
-        width: 80%;
-        max-width: 800px;
+      margin: 20px auto;
+      width: 80%;
+      text-align: left;
     }
-    .slider-label {
-        font-size: 24px;
-        margin: 10px 0 5px;
-        display: flex;
-        justify-content: space-between;
+    .slider-container label {
+      display: block;
+      font-size: 1.5vw;
     }
-    input[type=range] {
-        width: 100%;
+    input[type="range"] {
+      width: 100%;
     }
-</style>
+    .caption {
+      font-size: 1vw;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+  </style>
 </head>
 <body>
+  <div id="population"></div>
+  <div class="label">World Budget Allocation</div>
 
-<div id="population"></div>
+  <div class="slider-container">
+    <label>God / No God</label>
+    <input type="range" id="godSlider" min="0" max="100" value="50">
+    <div class="caption">Affects societal stability and cooperation assumptions in the model.</div>
+  </div>
 
-<div class="slider-container">
-    <div class="slider-label" title="Religious belief may influence birth rates and societal stability.">
-        <span>God</span><span>No God</span>
-    </div>
-    <input type="range" min="-50" max="50" value="0" id="godSlider">
+  <div class="slider-container">
+    <label>Fossil Fuels / Renewables</label>
+    <input type="range" id="energySlider" min="0" max="100" value="50">
+    <div class="caption">Impacts long-term sustainability and climate-driven migration.</div>
+  </div>
 
-    <div class="slider-label" title="Fossil fuels boost short-term development but harm climate; renewables may sustain long-term growth.">
-        <span>Fossil Fuels</span><span>Renewables</span>
-    </div>
-    <input type="range" min="-50" max="50" value="0" id="energySlider">
+  <div class="slider-container">
+    <label>War / Healthcare</label>
+    <input type="range" id="warHealthSlider" min="0" max="100" value="50">
+    <div class="caption">Directly influences mortality rates and life expectancy.</div>
+  </div>
 
-    <div class="slider-label" title="War reduces population and disrupts health; healthcare increases life expectancy.">
-        <span>War</span><span>Healthcare</span>
-    </div>
-    <input type="range" min="-50" max="50" value="0" id="warSlider">
+  <div class="slider-container">
+    <label>Handmade Production / AI Superintelligence Production</label>
+    <input type="range" id="aiSlider" min="0" max="100" value="50">
+    <div class="caption">Affects economic efficiency, job distribution, and resource access.</div>
+  </div>
 
-    <div class="slider-label" title="Handmade production can limit scale; AI superintelligence may increase production and support more lives.">
-        <span>Handmade Production</span><span>AI Superintelligence</span>
-    </div>
-    <input type="range" min="-50" max="50" value="0" id="aiSlider">
-</div>
+  <script>
+    // Anchor: UN World Population Estimate for Jan 1, 2025
+    const basePopulation = 8079200000; // UN estimate
+    const baseDate = new Date("2025-01-01T00:00:00Z");
 
-<script>
-let population = 8045311447; // starting value
-let birthRate = 1; // base births per second
-let deathRate = 0.5; // base deaths per second
+    // Base growth rate: ~2.3 people/sec
+    let baseRate = 2.3; 
 
-function updatePopulation() {
-    let godEffect = document.getElementById('godSlider').value / 100;
-    let energyEffect = document.getElementById('energySlider').value / 100;
-    let warEffect = document.getElementById('warSlider').value / 100;
-    let aiEffect = document.getElementById('aiSlider').value / 100;
+    const popElement = document.getElementById("population");
 
-    let totalEffect = godEffect + energyEffect - warEffect + aiEffect;
+    function formatNumber(num) {
+      return Math.floor(num).toString(); // no commas or decimals
+    }
 
-    let netChangePerSecond = (birthRate - deathRate) + totalEffect;
-    population += netChangePerSecond / 10; // update 10 times per second
+    function getRateFromSliders() {
+      const god = document.getElementById("godSlider").value;
+      const energy = document.getElementById("energySlider").value;
+      const warHealth = document.getElementById("warHealthSlider").value;
+      const ai = document.getElementById("aiSlider").value;
 
-    document.getElementById('population').textContent = Math.floor(population);
-}
+      let rate = baseRate;
 
-setInterval(updatePopulation, 100); // 10 updates per second
-</script>
+      // Adjust rate: sliders range from -50% to +50% effect
+      rate *= 1 + ((god - 50) / 100) * 0.2;
+      rate *= 1 + ((energy - 50) / 100) * 0.3;
+      rate *= 1 + ((warHealth - 50) / 100) * 0.5;
+      rate *= 1 + ((ai - 50) / 100) * 0.4;
 
+      return rate;
+    }
+
+    function updatePopulation() {
+      const now = new Date();
+      const secondsElapsed = (now - baseDate) / 1000;
+      const rate = getRateFromSliders();
+      const currentPopulation = basePopulation + secondsElapsed * rate;
+      popElement.textContent = formatNumber(currentPopulation);
+      requestAnimationFrame(updatePopulation);
+    }
+
+    updatePopulation();
+  </script>
 </body>
 </html>
