@@ -1,99 +1,58 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>World Population with Pie Chart</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.3.0/dist/chartjs-plugin-dragdata.min.js"></script>
+  <meta charset="UTF-8">
+  <title>World Population & Budget</title>
   <style>
     body {
       font-family: 'Bebas Neue', sans-serif;
       text-align: center;
-      background-color: #111;
-      color: white;
       margin: 0;
       padding: 0;
+      background-color: #f9f9f9;
     }
-    h1 {
-      font-size: 4em;
-      margin: 0.2em 0;
+    #population {
+      font-size: 6vw;
+      margin: 10px 0;
     }
-    canvas {
-      max-width: 90vw;
-      max-height: 70vh;
+    #chartContainer {
+      width: 90%;
+      max-width: 500px;
+      margin: auto;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 3px 0;
+    }
+    .slider-container label {
+      font-size: 3vw;
+      flex: 1;
+      text-align: left;
+    }
+    .slider-container input {
+      flex: 2;
+    }
+    @media (orientation: landscape) {
+      #population { font-size: 4vw; }
+      .slider-container label { font-size: 2vw; }
     }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1 id="population">Loading...</h1>
-  <canvas id="pieChart"></canvas>
+  <div id="population"></div>
+  <div id="chartContainer">
+    <canvas id="budgetChart"></canvas>
+  </div>
+  <div id="sliders"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // --- WORLD POPULATION COUNTER ---
-    function getCurrentPopulation() {
-      // Approx starting point: 8,118,000,000 on Jan 1 2025
-      const startPop = 8118000000;
-      const growthPerSecond = 2.3; // ~73 million/year
-      const startDate = new Date("2025-01-01T00:00:00Z").getTime();
-      const now = Date.now();
-      const elapsedSec = (now - startDate) / 1000;
-      return Math.floor(startPop + elapsedSec * growthPerSecond);
-    }
+    // ---- World Population Counter ----
+    const worldPopStart = 8045311447; // base population (approx Feb 2025)
+    const growthPerSecond = 2.43; // births - deaths per second (approx)
+    const startTime = Date.now();
 
-    function updatePopulationDisplay() {
-      document.getElementById('population').innerText = getCurrentPopulation();
-    }
-    setInterval(updatePopulationDisplay, 1000);
-    updatePopulationDisplay();
-
-    // --- PIE CHART DATA ---
-    const labels = [
-      'Social Protection',
-      'Health',
-      'General Public Services',
-      'Economic Affairs',
-      'Education',
-      'Debt Servicing',
-      'Public Order and Safety',
-      'Housing and Community Amenities',
-      'Recreation, Culture, and Religion',
-      'Environmental Protection',
-      'Other'
-    ];
-    const dataValues = [22.0, 8.0, 6.2, 6.1, 5.0, 4.5, 3.5, 3.0, 2.5, 2.0, 37.2]; // sum to 100
-
-    const ctx = document.getElementById('pieChart').getContext('2d');
-    const pieChart = new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: dataValues,
-          backgroundColor: [
-            '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff',
-            '#ff9f40', '#8dd17e', '#d4a6c8', '#c9cbcf', '#f7786b', '#5d5d5d'
-          ]
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'bottom', labels: { color: 'white', font: { size: 14 } } }
-        },
-        dragData: {
-          round: 1,
-          showTooltip: true,
-          onDrag: function(e, datasetIndex, index, value) {
-            // Update the dataset on drag
-            pieChart.data.datasets[datasetIndex].data[index] = value;
-            pieChart.update();
-          }
-        }
-      },
-      plugins: [ChartDataDrag]
-    });
-  </script>
-</body>
-</html>
+    function updatePopulation() {
+      const elap
