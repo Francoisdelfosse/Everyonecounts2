@@ -1,17 +1,249 @@
-.tooltip {
-  position: absolute;
-  bottom: 30px;
-  transform: translateX(0);
-  background: rgba(255,255,255,0.9);
-  color: black;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-family: Arial, sans-serif;
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  user-select: none;
-  max-width: 200px;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>World Population & Budget Allocation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Bebas Neue', sans-serif;
+      background-color: black;
+      color: white;
+      text-align: center;
+      margin: 10px 10px 20px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      justify-content: center;
+    }
+    #population {
+      font-size: 10vw;
+      letter-spacing: 0.05em;
+      margin: 0 0 5px 0;
+      user-select: none;
+    }
+    h2 {
+      margin: 0 0 15px 0;
+      font-weight: normal;
+      font-size: 3vw;
+      letter-spacing: 0.1em;
+      user-select: none;
+    }
+    .slider-container {
+      width: 90vw;
+      max-width: 600px;
+      margin-bottom: 15px;
+      text-align: left;
+      position: relative;
+    }
+    label {
+      font-size: 1.4vw;
+      display: block;
+      margin-bottom: 3px;
+      user-select: none;
+    }
+    input[type=range] {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    /* Slider track and thumb for consistency */
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      background: #444;
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -6px;
+      position: relative;
+      z-index: 1;
+    }
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      bottom: 30px;
+      transform: translateX(0);
+      background: rgba(255,255,255,0.9);
+      color: black;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      user-select: none;
+      max-width: 200px;
+    }
+    .tooltip.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="population">Loading...</div>
+  <h2>World Budget Allocation</h2>
+
+  <div class="slider-container" data-tooltip="More healthcare slowly improves life expectancy over ~15 years.">
+    <label for="health">Healthcare: <span id="healthVal">50</span>%</label>
+    <input type="range" id="health" min="0" max="100" value="50" />
+    <div class="tooltip"></div>
+  </div>
+
+  <div class="slider-container" data-tooltip="Better education improves societal health and birth rates gradually (~15 years).">
+    <label for="education">Education: <span id="educationVal">50</span>%</label>
+    <input type="range" id="education" min="0" max="100" value="50" />
+    <div class="tooltip"></div>
+  </div>
+
+  <div class="slider-container" data-tooltip="Cleaner energy & environment reduce mortality slowly over ~15 years.">
+    <label for="climate">Climate: <span id="climateVal">50</span>%</label>
+    <input type="range" id="climate" min="0" max="100" value="50" />
+    <div class="tooltip"></div>
+  </div>
+
+  <div class="slider-container" data-tooltip="War & pandemics increase death rates quickly but effects fade over ~5 years.">
+    <label for="war">War/Pandemic Response: <span id="warVal">50</span>%</label>
+    <input type="range" id="war" min="0" max="100" value="50" />
+    <div class="tooltip"></div>
+  </div>
+
+<script>
+  // Anchor data: Jan 1, 2025 population estimate & base growth rate
+  const basePopulation = 8079200000;
+  const baseDate = new Date("2025-01-01T00:00:00Z").getTime();
+  const baseGrowthRate = 0.008; // ~0.8% per year (approximate)
+
+  // Slider influence configuration (weight & lag in years)
+  const sliderConfigs = {
+    health: { weight: 0.002, lagYears: 15 },
+    education: { weight: 0.002, lagYears: 15 },
+    climate: { weight: 0.001, lagYears: 15 },
+    war: { weight: -0.003, lagYears: 5 }
+  };
+
+  const sliders = {
+    health: 50,
+    education: 50,
+    climate: 50,
+    war: 50
+  };
+  const effectiveSliders = {
+    health: 50,
+    education: 50,
+    climate: 50,
+    war: 50
+  };
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  // Update target slider values on input
+  function updateTarget(id, val) {
+    sliders[id] = val;
+    document.getElementById(id + "Val").textContent = val;
+  }
+
+  // Gradually update effective slider values toward targets based on lag
+  function updateEffectiveSliders(deltaTime) {
+    for (const id in sliders) {
+      const cfg = sliderConfigs[id];
+      const target = sliders[id];
+      const current = effectiveSliders[id];
+      const lagSeconds = cfg.lagYears * 365.25 * 24 * 3600;
+      const smoothing = 1 - Math.exp(-deltaTime / lagSeconds);
+      effectiveSliders[id] = lerp(current, target, smoothing);
+    }
+  }
+
+  // Calculate current growth rate based on effective sliders
+  function calcGrowthRate() {
+    let rate = baseGrowthRate;
+    for (const id in effectiveSliders) {
+      const offset = (effectiveSliders[id] - 50) / 50;
+      rate += offset * sliderConfigs[id].weight;
+    }
+    return rate;
+  }
+
+  let lastTimestamp = null;
+  let currentPopulation = basePopulation;
+
+  function update(timestamp) {
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const deltaMs = timestamp - lastTimestamp;
+    lastTimestamp = timestamp;
+    const deltaSec = deltaMs / 1000;
+
+    updateEffectiveSliders(deltaSec);
+    const growthRate = calcGrowthRate();
+
+    currentPopulation *= Math.exp(growthRate * (deltaSec / (365.25 * 24 * 3600)));
+
+    document.getElementById("population").textContent = Math.floor(currentPopulation);
+
+    requestAnimationFrame(update);
+  }
+
+  // Tooltip handling with improved positioning
+  const sliderContainers = document.querySelectorAll(".slider-container");
+  sliderContainers.forEach(container => {
+    const slider = container.querySelector("input[type=range]");
+    const tooltip = container.querySelector(".tooltip");
+    const text = container.getAttribute("data-tooltip");
+
+    slider.addEventListener("input", e => {
+      updateTarget(slider.id, Number(e.target.value));
+      tooltip.textContent = text;
+      tooltip.classList.add("visible");
+
+      const rect = slider.getBoundingClientRect();
+      const sliderWidth = rect.width;
+      const thumbWidth = 18; // same as CSS thumb width
+      const tooltipWidth = tooltip.offsetWidth || 100; // fallback width
+
+      const percent = (e.target.value - slider.min) / (slider.max - slider.min);
+      let left = percent * sliderWidth;
+
+      // Center tooltip above thumb
+      left = left - tooltipWidth / 2 + thumbWidth / 2;
+
+      // Clamp to slider container bounds
+      if (left < 0) left = 0;
+      if (left + tooltipWidth > sliderWidth) left = sliderWidth - tooltipWidth;
+
+      tooltip.style.left = `${left}px`;
+    });
+
+    slider.addEventListener("change", () => {
+      tooltip.classList.remove("visible");
+    });
+
+    slider.addEventListener("blur", () => {
+      tooltip.classList.remove("visible");
+    });
+  });
+
+  // Initialize slider values display
+  ["health", "education", "climate", "war"].forEach(id => {
+    const slider = document.getElementById(id);
+    document.getElementById(id + "Val").textContent = slider.value;
+  });
+
+  requestAnimationFrame(update);
+</script>
+</body>
+</html>
