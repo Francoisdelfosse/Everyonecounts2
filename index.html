@@ -1,141 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Population & Spending</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: #f8f8f8;
-    margin: 0;
-    padding: 0;
-  }
-  #population {
-    font-size: 3em;
-    font-weight: bold;
-    margin: 20px 0;
-  }
-  #chart-container {
-    width: 90%;
-    max-width: 500px;
-    margin: auto;
-  }
-  .slider-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.9em;
-    margin: 5px 0;
-  }
-  .slider-container input {
-    flex: 1;
-    margin: 0 10px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>World Population with Pie Chart</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.3.0/dist/chartjs-plugin-dragdata.min.js"></script>
+  <style>
+    body {
+      font-family: 'Bebas Neue', sans-serif;
+      text-align: center;
+      background-color: #111;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      font-size: 4em;
+      margin: 0.2em 0;
+    }
+    canvas {
+      max-width: 90vw;
+      max-height: 70vh;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 </head>
 <body>
+  <h1 id="population">Loading...</h1>
+  <canvas id="pieChart"></canvas>
 
-<div id="population">Loading...</div>
-
-<div id="chart-container">
-  <canvas id="spendingChart"></canvas>
-</div>
-
-<div id="sliders"></div>
-
-<script>
-// --- World Population Counter ---
-function updatePopulation() {
-  const startDate = new Date("2025-01-01T00:00:00Z");
-  const startPopulation = 8045311447; // Estimate Jan 1, 2025
-  const growthPerSecond = 2.3; // Approx world growth rate
-  
-  const now = new Date();
-  const secondsElapsed = (now - startDate) / 1000;
-  const currentPopulation = Math.floor(startPopulation + (secondsElapsed * growthPerSecond));
-  
-  document.getElementById("population").textContent = currentPopulation;
-}
-setInterval(updatePopulation, 1000);
-updatePopulation();
-
-// --- Pie Chart Data ---
-const categories = [
-  { name: "Social Protection", value: 22.0, color: "#FF6384" },
-  { name: "Health", value: 8.0, color: "#36A2EB" },
-  { name: "General Public Services", value: 6.2, color: "#FFCE56" },
-  { name: "Economic Affairs", value: 6.1, color: "#4BC0C0" },
-  { name: "Education", value: 5.0, color: "#9966FF" },
-  { name: "Debt Servicing", value: 4.5, color: "#FF9F40" },
-  { name: "Public Order and Safety", value: 3.5, color: "#66FF66" },
-  { name: "Housing and Community Amenities", value: 3.0, color: "#FF6666" },
-  { name: "Recreation, Culture, and Religion", value: 2.5, color: "#66B2FF" },
-  { name: "Environmental Protection", value: 2.0, color: "#FFD700" },
-  { name: "Other", value: 0, color: "#CCCCCC" }
-];
-
-// Calculate initial "Other"
-function updateOther() {
-  const sum = categories.slice(0, -1).reduce((a, c) => a + c.value, 0);
-  categories[categories.length - 1].value = Math.max(0, 100 - sum);
-}
-updateOther();
-
-// --- Create Chart ---
-const ctx = document.getElementById('spendingChart').getContext('2d');
-const spendingChart = new Chart(ctx, {
-  type: 'pie',
-  data: {
-    labels: categories.map(c => c.name),
-    datasets: [{
-      data: categories.map(c => c.value),
-      backgroundColor: categories.map(c => c.color)
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { position: 'bottom' }
+  <script>
+    // --- WORLD POPULATION COUNTER ---
+    function getCurrentPopulation() {
+      // Approx starting point: 8,118,000,000 on Jan 1 2025
+      const startPop = 8118000000;
+      const growthPerSecond = 2.3; // ~73 million/year
+      const startDate = new Date("2025-01-01T00:00:00Z").getTime();
+      const now = Date.now();
+      const elapsedSec = (now - startDate) / 1000;
+      return Math.floor(startPop + elapsedSec * growthPerSecond);
     }
-  }
-});
 
-// --- Sliders ---
-const slidersDiv = document.getElementById("sliders");
-categories.slice(0, -1).forEach((cat, index) => {
-  const container = document.createElement("div");
-  container.className = "slider-container";
-  
-  const label = document.createElement("span");
-  label.textContent = cat.name;
-  
-  const input = document.createElement("input");
-  input.type = "range";
-  input.min = 0;
-  input.max = 50;
-  input.step = 0.1;
-  input.value = cat.value;
-  
-  const valueSpan = document.createElement("span");
-  valueSpan.textContent = cat.value.toFixed(1) + "%";
-  
-  input.addEventListener("input", () => {
-    cat.value = parseFloat(input.value);
-    updateOther();
-    valueSpan.textContent = cat.value.toFixed(1) + "%";
-    spendingChart.data.datasets[0].data = categories.map(c => c.value);
-    spendingChart.update();
-  });
-  
-  container.appendChild(label);
-  container.appendChild(input);
-  container.appendChild(valueSpan);
-  slidersDiv.appendChild(container);
-});
-</script>
+    function updatePopulationDisplay() {
+      document.getElementById('population').innerText = getCurrentPopulation();
+    }
+    setInterval(updatePopulationDisplay, 1000);
+    updatePopulationDisplay();
 
+    // --- PIE CHART DATA ---
+    const labels = [
+      'Social Protection',
+      'Health',
+      'General Public Services',
+      'Economic Affairs',
+      'Education',
+      'Debt Servicing',
+      'Public Order and Safety',
+      'Housing and Community Amenities',
+      'Recreation, Culture, and Religion',
+      'Environmental Protection',
+      'Other'
+    ];
+    const dataValues = [22.0, 8.0, 6.2, 6.1, 5.0, 4.5, 3.5, 3.0, 2.5, 2.0, 37.2]; // sum to 100
+
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    const pieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: dataValues,
+          backgroundColor: [
+            '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff',
+            '#ff9f40', '#8dd17e', '#d4a6c8', '#c9cbcf', '#f7786b', '#5d5d5d'
+          ]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: 'white', font: { size: 14 } } }
+        },
+        dragData: {
+          round: 1,
+          showTooltip: true,
+          onDrag: function(e, datasetIndex, index, value) {
+            // Update the dataset on drag
+            pieChart.data.datasets[datasetIndex].data[index] = value;
+            pieChart.update();
+          }
+        }
+      },
+      plugins: [ChartDataDrag]
+    });
+  </script>
 </body>
 </html>
