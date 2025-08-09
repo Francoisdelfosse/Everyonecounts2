@@ -10,8 +10,8 @@
       background-color: black;
       color: white;
       text-align: center;
-      margin: 0;
-      padding: 20px;
+      margin: 10px 10px 20px;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -19,13 +19,13 @@
       justify-content: center;
     }
     #population {
-      font-size: 12vw;
+      font-size: 10vw;
       letter-spacing: 0.05em;
-      margin: 0;
+      margin: 0 0 5px 0;
       user-select: none;
     }
     h2 {
-      margin-top: 10px;
+      margin: 0 0 15px 0;
       font-weight: normal;
       font-size: 3vw;
       letter-spacing: 0.1em;
@@ -34,25 +34,60 @@
     .slider-container {
       width: 90vw;
       max-width: 600px;
-      margin-top: 40px;
+      margin-bottom: 15px;
       text-align: left;
+      position: relative;
     }
     label {
       font-size: 1.4vw;
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 3px;
       user-select: none;
     }
     input[type=range] {
       width: 100%;
-      margin-bottom: 15px;
+      margin: 0;
+      padding: 0;
+      -webkit-appearance: none;
+      background: transparent;
     }
-    .caption {
-      font-size: 1vw;
-      color: #bbb;
-      margin-top: -12px;
-      margin-bottom: 24px;
+    /* Slider track and thumb for consistency */
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      background: #444;
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -6px;
+      position: relative;
+      z-index: 1;
+    }
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.9);
+      color: black;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
       user-select: none;
+    }
+    .tooltip.visible {
+      opacity: 1;
     }
   </style>
 </head>
@@ -61,28 +96,28 @@
   <div id="population">Loading...</div>
   <h2>World Budget Allocation</h2>
 
-  <div class="slider-container">
+  <div class="slider-container" data-tooltip="More healthcare slowly improves life expectancy over ~15 years.">
     <label for="health">Healthcare: <span id="healthVal">50</span>%</label>
     <input type="range" id="health" min="0" max="100" value="50" />
-    <div class="caption">More healthcare slowly improves life expectancy over ~15 years.</div>
+    <div class="tooltip"></div>
   </div>
 
-  <div class="slider-container">
+  <div class="slider-container" data-tooltip="Better education improves societal health and birth rates gradually (~15 years).">
     <label for="education">Education: <span id="educationVal">50</span>%</label>
     <input type="range" id="education" min="0" max="100" value="50" />
-    <div class="caption">Better education improves societal health and birth rates gradually (~15 years).</div>
+    <div class="tooltip"></div>
   </div>
 
-  <div class="slider-container">
+  <div class="slider-container" data-tooltip="Cleaner energy & environment reduce mortality slowly over ~15 years.">
     <label for="climate">Climate: <span id="climateVal">50</span>%</label>
     <input type="range" id="climate" min="0" max="100" value="50" />
-    <div class="caption">Cleaner energy & environment reduce mortality slowly over ~15 years.</div>
+    <div class="tooltip"></div>
   </div>
 
-  <div class="slider-container">
+  <div class="slider-container" data-tooltip="War & pandemics increase death rates quickly but effects fade over ~5 years.">
     <label for="war">War/Pandemic Response: <span id="warVal">50</span>%</label>
     <input type="range" id="war" min="0" max="100" value="50" />
-    <div class="caption">War & pandemics increase death rates quickly but effects fade over ~5 years.</div>
+    <div class="tooltip"></div>
   </div>
 
 <script>
@@ -99,7 +134,6 @@
     war: { weight: -0.003, lagYears: 5 }
   };
 
-  // Store slider targets and smoothed effective values
   const sliders = {
     health: 50,
     education: 50,
@@ -129,8 +163,6 @@
       const cfg = sliderConfigs[id];
       const target = sliders[id];
       const current = effectiveSliders[id];
-      // Calculate smoothing factor based on lag time (in seconds)
-      // deltaTime in seconds, lagYears converted to seconds
       const lagSeconds = cfg.lagYears * 365.25 * 24 * 3600;
       const smoothing = 1 - Math.exp(-deltaTime / lagSeconds);
       effectiveSliders[id] = lerp(current, target, smoothing);
@@ -141,14 +173,12 @@
   function calcGrowthRate() {
     let rate = baseGrowthRate;
     for (const id in effectiveSliders) {
-      // slider range 0-100, offset by 50 → -50 to +50
       const offset = (effectiveSliders[id] - 50) / 50;
       rate += offset * sliderConfigs[id].weight;
     }
     return rate;
   }
 
-  // Calculate current population based on growth rate and elapsed time since baseDate
   let lastTimestamp = null;
   let currentPopulation = basePopulation;
 
@@ -161,24 +191,46 @@
     updateEffectiveSliders(deltaSec);
     const growthRate = calcGrowthRate();
 
-    // Update population with exponential growth: P(t+dt) = P(t) * e^(r*dt)
     currentPopulation *= Math.exp(growthRate * (deltaSec / (365.25 * 24 * 3600)));
 
-    // Display population without commas or decimals
     document.getElementById("population").textContent = Math.floor(currentPopulation);
 
     requestAnimationFrame(update);
   }
 
-  // Event listeners for sliders
+  // Tooltip handling
+  const sliderContainers = document.querySelectorAll(".slider-container");
+  sliderContainers.forEach(container => {
+    const slider = container.querySelector("input[type=range]");
+    const tooltip = container.querySelector(".tooltip");
+    const text = container.getAttribute("data-tooltip");
+
+    slider.addEventListener("input", e => {
+      updateTarget(slider.id, Number(e.target.value));
+      tooltip.textContent = text;
+      tooltip.classList.add("visible");
+      // Position tooltip above thumb
+      const rect = slider.getBoundingClientRect();
+      const percent = (e.target.value - slider.min) / (slider.max - slider.min);
+      const left = percent * rect.width;
+      tooltip.style.left = `${left}px`;
+    });
+
+    slider.addEventListener("change", e => {
+      tooltip.classList.remove("visible");
+    });
+
+    slider.addEventListener("blur", () => {
+      tooltip.classList.remove("visible");
+    });
+  });
+
+  // Initialize slider values
   ["health", "education", "climate", "war"].forEach(id => {
     const slider = document.getElementById(id);
-    slider.addEventListener("input", e => updateTarget(id, Number(e.target.value)));
-    // Initialize display values
     document.getElementById(id + "Val").textContent = slider.value;
   });
 
-  // Start animation
   requestAnimationFrame(update);
 </script>
 </body>
