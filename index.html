@@ -1,106 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Real-time World Population Counter</title>
+<meta charset="UTF-8">
+<title>Real-Time World Population Counter</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
-  body {
-    font-family: 'Bebas Neue', sans-serif;
-    background: #000;
-    color: #fff;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-  }
-  .counter {
-    font-size: 10vw;
-    font-weight: 400;
-    text-align: center;
-    letter-spacing: 0.05em;
-  }
-  .sliders {
-    margin-top: 40px;
-    width: 80%;
-    max-width: 800px;
-  }
-  .slider-group {
-    margin-bottom: 20px;
-  }
-  .slider-group label {
-    display: block;
-    margin-bottom: 5px;
-  }
-  input[type=range] {
-    width: 100%;
-  }
-  .caption {
-    font-size: 0.9em;
-    color: #ccc;
-    margin-top: 5px;
-  }
+    body {
+        background-color: black;
+        color: white;
+        font-family: 'Bebas Neue', sans-serif;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    #population {
+        font-size: 120px;
+        font-weight: bold;
+        letter-spacing: 4px;
+    }
+    .slider-container {
+        margin-top: 50px;
+        width: 80%;
+        max-width: 800px;
+    }
+    .slider-label {
+        font-size: 24px;
+        margin: 10px 0 5px;
+        display: flex;
+        justify-content: space-between;
+    }
+    input[type=range] {
+        width: 100%;
+    }
 </style>
 </head>
 <body>
-<div class="counter" id="populationDisplay"></div>
-<div class="sliders">
-  <div class="slider-group">
-    <label>God / No God</label>
-    <input type="range" min="0" max="1" step="0.01" id="godSlider" value="0.5">
-    <div class="caption">Belief systems impact societal cohesion, influencing birth and death rates.</div>
-  </div>
-  <div class="slider-group">
-    <label>Fossil Fuels / Renewables</label>
-    <input type="range" min="0" max="1" step="0.01" id="energySlider" value="0.5">
-    <div class="caption">Energy sources affect climate change speed, impacting mortality rates over time.</div>
-  </div>
-  <div class="slider-group">
-    <label>War / Healthcare</label>
-    <input type="range" min="0" max="1" step="0.01" id="warHealthSlider" value="0.5">
-    <div class="caption">Resource allocation between conflict and healthcare shifts death rates significantly.</div>
-  </div>
-  <div class="slider-group">
-    <label>Handmade Production / AI Superintelligence Production</label>
-    <input type="range" min="0" max="1" step="0.01" id="aiSlider" value="0.5">
-    <div class="caption">Automation levels can change employment, living standards, and population growth.</div>
-  </div>
+
+<div id="population"></div>
+
+<div class="slider-container">
+    <div class="slider-label" title="Religious belief may influence birth rates and societal stability.">
+        <span>God</span><span>No God</span>
+    </div>
+    <input type="range" min="-50" max="50" value="0" id="godSlider">
+
+    <div class="slider-label" title="Fossil fuels boost short-term development but harm climate; renewables may sustain long-term growth.">
+        <span>Fossil Fuels</span><span>Renewables</span>
+    </div>
+    <input type="range" min="-50" max="50" value="0" id="energySlider">
+
+    <div class="slider-label" title="War reduces population and disrupts health; healthcare increases life expectancy.">
+        <span>War</span><span>Healthcare</span>
+    </div>
+    <input type="range" min="-50" max="50" value="0" id="warSlider">
+
+    <div class="slider-label" title="Handmade production can limit scale; AI superintelligence may increase production and support more lives.">
+        <span>Handmade Production</span><span>AI Superintelligence</span>
+    </div>
+    <input type="range" min="-50" max="50" value="0" id="aiSlider">
 </div>
+
 <script>
-let population = 8238000000;
-const secondsPerYear = 365.25 * 24 * 3600;
+let population = 8045311447; // starting value
+let birthRate = 1; // base births per second
+let deathRate = 0.5; // base deaths per second
 
-function perSecondRate(ratePerThousand) {
-  return (ratePerThousand / 1000) / secondsPerYear;
+function updatePopulation() {
+    let godEffect = document.getElementById('godSlider').value / 100;
+    let energyEffect = document.getElementById('energySlider').value / 100;
+    let warEffect = document.getElementById('warSlider').value / 100;
+    let aiEffect = document.getElementById('aiSlider').value / 100;
+
+    let totalEffect = godEffect + energyEffect - warEffect + aiEffect;
+
+    let netChangePerSecond = (birthRate - deathRate) + totalEffect;
+    population += netChangePerSecond / 10; // update 10 times per second
+
+    document.getElementById('population').textContent = Math.floor(population);
 }
 
-function step() {
-  const godFactor = parseFloat(document.getElementById('godSlider').value);
-  const energyFactor = parseFloat(document.getElementById('energySlider').value);
-  const warHealthFactor = parseFloat(document.getElementById('warHealthSlider').value);
-  const aiFactor = parseFloat(document.getElementById('aiSlider').value);
-
-  let birthRate = 17.2 + (godFactor - 0.5) * 10 + (aiFactor - 0.5) * 4;
-  let deathRate = 8.8 + (0.5 - warHealthFactor) * 15 + (energyFactor - 0.5) * 6;
-
-  // Climate impact from energy choice
-  let climateRate = (0.5 - energyFactor) * 0.004; // more fossil fuels => higher death rate growth
-
-  const birthPerSec = perSecondRate(birthRate);
-  const deathPerSec = perSecondRate(deathRate * (1 + climateRate));
-
-  const births = population * birthPerSec;
-  const deaths = population * deathPerSec;
-  population += births - deaths;
-
-  document.getElementById('populationDisplay').textContent = Math.floor(population).toString();
-}
-
-setInterval(step, 1000);
+setInterval(updatePopulation, 100); // 10 updates per second
 </script>
+
 </body>
 </html>
