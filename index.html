@@ -3,141 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Budget Impact</title>
+<title>World Population & Budget</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body {
-    font-family: 'Bebas Neue', sans-serif;
-    background-color: #111;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-    padding: 5px;
-  }
-  h1 {
-    font-size: 3rem;
-    margin: 0;
-  }
-  #population {
-    font-size: 2rem;
-    margin: 5px 0;
-  }
-  #chart-container {
-    width: 90vw;
-    max-width: 500px;
-    height: 90vw;
-    max-height: 500px;
-  }
-</style>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Bebas Neue', sans-serif;
+        text-align: center;
+        background-color: #f9f9f9;
+        margin: 0;
+        padding: 0;
+    }
+    .population {
+        font-size: 10vw;
+        margin: 10px 0;
+    }
+    canvas {
+        max-width: 90vw;
+        max-height: 60vh;
+        margin: auto;
+    }
+    .caption {
+        font-size: 4vw;
+        margin-top: 5px;
+    }
+</style>
 </head>
 <body>
 
-<h1>World Population</h1>
-<div id="population"></div>
-<div id="chart-container">
-  <canvas id="budgetChart"></canvas>
-</div>
+<div class="population" id="population">Loading...</div>
+<canvas id="budgetChart"></canvas>
+<div class="caption" id="caption">Click a slice to see details</div>
 
 <script>
-  // --- Real-time starting population ---
-  const basePopulation = 8045311447; // World pop estimate for Jan 1, 2025
-  const yearlyGrowthRate = 0.008; // 0.8% per year
-  const startOfYear = new Date('2025-01-01T00:00:00Z').getTime();
-  const now = Date.now();
-  const secondsSinceStart = (now - startOfYear) / 1000;
-  const populationPerSecond = (basePopulation * yearlyGrowthRate) / (365 * 24 * 60 * 60);
-  let currentPopulation = basePopulation + (populationPerSecond * secondsSinceStart);
+    // Estimated population from UN data
+    const basePopulation = 8045311447; // UN July 2024 estimate
+    const annualGrowthRate = 0.0083; // ~0.83% annual growth
+    const growthPerSecond = basePopulation * annualGrowthRate / (365 * 24 * 60 * 60);
 
-  function formatNumber(num) {
-    return num.toLocaleString('en-US', {maximumFractionDigits: 0});
-  }
-
-  const populationElement = document.getElementById('population');
-
-  function updatePopulationDisplay() {
-    currentPopulation += populationPerSecond / 10; // update every 100ms
-    populationElement.textContent = formatNumber(currentPopulation);
-  }
-  setInterval(updatePopulationDisplay, 100);
-
-  // --- Interactive Pie Chart ---
-  const ctx = document.getElementById('budgetChart').getContext('2d');
-
-  const labels = [
-    "Social Protection",
-    "Health",
-    "General Public Services",
-    "Economic Affairs",
-    "Education",
-    "Debt Servicing",
-    "Public Order & Safety",
-    "Housing & Community Amenities",
-    "Recreation, Culture & Religion",
-    "Environmental Protection",
-    "Other"
-  ];
-
-  const initialData = [22.0, 8.0, 6.2, 6.1, 5.0, 4.5, 3.5, 3.0, 2.5, 2.0, 37.2];
-
-  const colors = [
-    "#ff6384", "#36a2eb", "#ffcd56", "#4bc0c0", "#9966ff",
-    "#ff9f40", "#66ff66", "#ff6666", "#66b2ff", "#c9cbcf", "#999999"
-  ];
-
-  const budgetChart = new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: initialData,
-        backgroundColor: colors
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          labels: {
-            color: 'white',
-            font: { size: 14 }
-          }
-        },
-        tooltip: {
-          callbacks: {
-            label: (context) => `${context.label}: ${context.parsed.toFixed(1)}%`
-          }
-        }
-      },
-      onClick: (evt, activeEls) => {
-        if (activeEls.length > 0) {
-          let idx = activeEls[0].index;
-          let change = prompt(`Adjust percentage for ${labels[idx]}:`, budgetChart.data.datasets[0].data[idx]);
-          if (change !== null && !isNaN(change)) {
-            change = parseFloat(change);
-            let diff = change - budgetChart.data.datasets[0].data[idx];
-            budgetChart.data.datasets[0].data[idx] = change;
-
-            // Re-normalize other slices so total stays 100
-            let totalOther = budgetChart.data.datasets[0].data.reduce((sum, val, i) => i !== idx ? sum + val : sum, 0);
-            let scaleFactor = (100 - change) / totalOther;
-            budgetChart.data.datasets[0].data = budgetChart.data.datasets[0].data.map((val, i) =>
-              i === idx ? val : val * scaleFactor
-            );
-            budgetChart.update();
-
-            // Small long-term effect on population growth rate
-            yearlyGrowthRate += diff * 0.00001; // very slow effect
-          }
-        }
-      }
+    function getCurrentPopulation() {
+        const now = new Date();
+        const startOf2024 = new Date('2024-07-01T00:00:00Z');
+        const elapsedSeconds = (now - startOf2024) / 1000;
+        return Math.floor(basePopulation + elapsedSeconds * growthPerSecond);
     }
-  });
-</script>
 
-</body>
-</html>
+    function updatePopulation() {
+        document.getElementById("population").textContent = getCurrentPopulation();
+    }
+    setInterval(updatePopulation, 1000);
